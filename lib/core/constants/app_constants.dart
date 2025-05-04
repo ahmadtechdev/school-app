@@ -1,6 +1,6 @@
 class AppConstants {
   // API endpoints
-  static const String baseUrl = 'https://demo.girdonawah.com/api';
+  static const String baseUrl = 'https://mamnoonskills.com/api';
   static const String loginEndpoint = '/login';
   static const String logoutEndpoint = '/logout';
   static const String dashboardEndpoint = '/dashboard';

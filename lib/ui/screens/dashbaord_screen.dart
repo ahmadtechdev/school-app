@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:school_parent_app/ui/screens/notice_board_screen.dart';
+import 'package:school_parent_app/ui/screens/payments_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -10,6 +12,7 @@ import '../../data/models/dashboard.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import 'attendance_screen.dart';
+import 'study_material_screen.dart';
 
 
 class DashboardScreen extends StatefulWidget {
@@ -781,11 +784,21 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       margin: const EdgeInsets.all(10),
       borderRadius: 10,
     );
-    Get.to(() => AttendanceScreen(
-      studentId: student.id.toString(),
-      studentName: student.name,
-      studentImage: student.image,
-    ));
+
+    if(moduleTitle=="Attendance"){
+      Get.to(() => AttendanceScreen(
+        studentId: student.id.toString(),
+        studentName: student.name,
+        studentImage: student.image,
+      ));
+    }else if(moduleTitle=="Payments"){
+      Get.to(() => PaymentsScreen());
+    }else if(moduleTitle=="Study\nMaterial"){
+      Get.to(() => StudyMaterialScreen(studentId: student.id.toString(), studentName: student.name, studentImage: student.image,));
+    } else if(moduleTitle=="Notice\nBoard"){
+      Get.to(() => NoticeBoardScreen(studentId: student.id.toString(), studentName: student.name, studentImage: student.image,));
+    }
+
 
     // Here you would typically navigate to the respective screen
     // For example:
