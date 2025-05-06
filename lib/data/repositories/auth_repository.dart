@@ -39,6 +39,10 @@ class AuthRepository {
           }
           await _storageService.setLoggedIn(true);
 
+          // Debug print
+          print('Login successful. Token saved: ${loginResponse.token}');
+          print('isLoggedIn set to: ${_storageService.isLoggedIn()}');
+
           // Set auth token for future API calls
           _apiService.setAuthToken(loginResponse.token!);
         }
@@ -67,11 +71,20 @@ class AuthRepository {
   }
 
   // Check if user is logged in
+  // In auth_repository.dart
   bool isLoggedIn() {
-    return _storageService.isLoggedIn();
+    final isLoggedIn = _storageService.isLoggedIn();
+    final token = _storageService.getAuthToken();
+
+    // Set the token in ApiService if logged in
+    if (isLoggedIn && token != null && token.isNotEmpty) {
+      _apiService.setAuthToken(token);
+    }
+
+    return isLoggedIn && token != null && token.isNotEmpty;
   }
 
-  // In auth_repository.dart
+  // Logout
   Future<ApiResponse<dynamic>> logout() async {
     try {
       // First call the API logout

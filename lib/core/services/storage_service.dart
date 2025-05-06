@@ -1,4 +1,5 @@
 import 'package:get_storage/get_storage.dart';
+import '../constants/app_constants.dart';
 
 class StorageService {
   final GetStorage _storage = GetStorage();
@@ -33,26 +34,28 @@ class StorageService {
 
   // Specific methods for auth
   Future<void> saveAuthToken(String token) async {
-    await write('auth_token', token);
+    await write(AppConstants.authTokenKey, token);
   }
 
   String? getAuthToken() {
-    return read<String>('auth_token');
+    return read<String>(AppConstants.authTokenKey);
   }
 
   Future<void> saveUserData(Map<String, dynamic> userData) async {
-    await write('user_data', userData);
+    await write(AppConstants.userDataKey, userData);
   }
 
   Map<String, dynamic>? getUserData() {
-    return read<Map<String, dynamic>>('user_data');
+    return read<Map<String, dynamic>>(AppConstants.userDataKey);
   }
 
   Future<void> setLoggedIn(bool value) async {
-    await write('is_logged_in', value);
+    await write(AppConstants.isLoggedInKey, value);
   }
 
   bool isLoggedIn() {
-    return read<bool>('is_logged_in') ?? false;
+    final value = read<bool>(AppConstants.isLoggedInKey);
+    print('isLoggedIn check: $value'); // Debug print
+    return value ?? false;
   }
 }

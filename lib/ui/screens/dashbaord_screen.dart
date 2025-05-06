@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:school_parent_app/ui/screens/change_password_screen.dart';
+import 'package:school_parent_app/ui/screens/homework_diary_screen.dart';
+import 'package:school_parent_app/ui/screens/marks_screen.dart';
 import 'package:school_parent_app/ui/screens/notice_board_screen.dart';
 import 'package:school_parent_app/ui/screens/payments_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,7 +19,7 @@ import 'study_material_screen.dart';
 
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -135,22 +138,25 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       ),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    dashboardData?.instituteName ?? 'Loading...',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      dashboardData?.instituteName ?? 'Loading...',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 15),
           Row(
@@ -481,7 +487,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         'color': Colors.blueGrey,
         'requiresStudentSelection': false,
         'onTap': () {
-          // Get.to(() => ChangePasswordScreen());
+          Get.to(() => ChangePasswordScreen());
         },
       },
       {
@@ -491,7 +497,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         'requiresStudentSelection': false,
         'onTap': () {
           // Get the AuthController and call logout
-          final AuthController authController = Get.find<AuthController>();
+          final AuthController authController = Get.put(AuthController());
           authController.logout();
         },
       },
@@ -797,6 +803,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       Get.to(() => StudyMaterialScreen(studentId: student.id.toString(), studentName: student.name, studentImage: student.image,));
     } else if(moduleTitle=="Notice\nBoard"){
       Get.to(() => NoticeBoardScreen(studentId: student.id.toString(), studentName: student.name, studentImage: student.image,));
+    }else if(moduleTitle=="Marks"){
+      Get.to(() => MarksScreen(studentId: student.id.toString(), studentName: student.name, studentImage: student.image,));
+    }else if(moduleTitle=="Homework\nDiary"){
+      Get.to(() => HomeworkDiaryScreen(studentId: student.id.toString(), studentName: student.name, studentImage: student.image,));
+    }else if(moduleTitle=="Change\nPassword"){
+      Get.to(() => ChangePasswordScreen());
     }
 
 

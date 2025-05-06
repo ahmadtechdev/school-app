@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 
 import '../../data/models/api_response.dart';
 import '../../data/models/dashboard.dart';
+import '../../data/models/password_change_model.dart';
 import '../constants/app_constants.dart';
 
 
@@ -37,8 +38,19 @@ class ApiService {
   }
 
   // Dashboard data fetch method
+  // In api_service.dart
   Future<ApiResponse<DashboardModel>> getDashboardData() async {
     try {
+      // Ensure we have the auth token
+      final token = _dio.options.headers['Authorization'];
+      if (token == null || token.isEmpty) {
+        return ApiResponse<DashboardModel>(
+          success: false,
+          data: null,
+          message: 'Authentication token missing',
+        );
+      }
+
       final response = await _dio.get(
         AppConstants.dashboardEndpoint,
         options: Options(
@@ -56,7 +68,6 @@ class ApiService {
       return _handleError<DashboardModel>(e);
     }
   }
-
   // Generic GET request
   Future<ApiResponse<T>> get<T>(
       String path, {
@@ -90,6 +101,37 @@ class ApiService {
       return _processResponse<T>(response, null);
     } catch (e) {
       return _handleError<T>(e);
+    }
+  }
+
+  // Add this function to your existing ApiService class
+
+  Future<ApiResponse> updatePassword(PasswordChangeModel passwordData) async {
+    try {
+      // Ensure we have the auth token
+      final token = _dio.options.headers['Authorization'];
+      if (token == null || token.isEmpty) {
+        return ApiResponse(
+          success: false,
+          data: null,
+          message: 'Authentication token missing',
+        );
+      }
+
+      final response = await _dio.put(
+        '/update-password',
+        options: Options(
+          headers: {
+            'Authorization': _dio.options.headers['Authorization'],
+            'Content-Type': 'application/json',
+          },
+        ),
+        data: passwordData.toJson(),
+      );
+
+      return _processResponse(response, null);
+    } catch (e) {
+      return _handleError(e);
     }
   }
 
@@ -154,7 +196,7 @@ class ApiService {
           final responseData = error.response?.data;
 
           if (responseData != null && responseData is Map) {
-            errorMessage = responseData['error'] ?? AppConstants.genericErrorMessage;
+            errorMessage = responseData['message'] ?? AppConstants.genericErrorMessage;
           } else if (statusCode == 401) {
             errorMessage = 'Unauthorized access. Please login again.';
           } else if (statusCode == 404) {

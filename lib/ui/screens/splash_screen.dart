@@ -3,9 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 
-
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/colors.dart';
+import '../../core/services/storage_service.dart';
 import '../../routes.dart';
 import '../controllers/auth_controller.dart';
 
@@ -19,6 +19,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
   late AnimationController _dnaAnimationController;
   late AnimationController _fadeController;
+  final StorageService _storageService = StorageService();
 
   @override
   void initState() {
@@ -40,15 +41,25 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       _fadeController.forward();
     });
 
-    // Navigate after splash duration
-    Future.delayed(AppConstants.splashDuration, () {
-      final AuthController authController = Get.put(AuthController());
-      if (authController.isLoggedIn()) {
-        Get.offAllNamed(AppRoutes.dashboard);
-      } else {
-        Get.offAllNamed(AppRoutes.login);
-      }
-    });
+    // Initialize storage and then navigate
+    _initAndNavigate();
+  }
+
+  Future<void> _initAndNavigate() async {
+    // Ensure storage is initialized before checking login status
+    await _storageService.init();
+
+    // Add a small delay to make sure the storage is ready
+    await Future.delayed(AppConstants.splashDuration);
+
+    final AuthController authController = Get.put(AuthController());
+
+    // This will now also set the token in ApiService if logged in
+    if (authController.isLoggedIn()) {
+      Get.offAllNamed(AppRoutes.dashboard);
+    } else {
+      Get.offAllNamed(AppRoutes.login);
+    }
   }
 
   @override
@@ -100,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 FadeTransition(
                   opacity: _fadeController,
                   child: const Text(
-                    'Modern Login',
+                    'Parent Portal',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -121,7 +132,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 FadeTransition(
                   opacity: _fadeController,
                   child: const Text(
-                    'Welcome to the future of authentication',
+                    'Smart Parenting Starts Here',
                     style: TextStyle(
                       fontSize: 16,
                       color: AppColors.textSecondary,

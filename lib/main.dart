@@ -2,7 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:school_parent_app/routes.dart';
 
-void main() {
+import 'core/services/storage_service.dart';
+
+Future<void> main() async {
+
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize storage service before app starts
+  final storageService = StorageService();
+  await storageService.init();
+
   runApp(const MainApp());
 }
 
