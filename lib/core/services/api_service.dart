@@ -3,7 +3,10 @@ import 'package:dio/dio.dart';
 
 import '../../data/models/api_response.dart';
 import '../../data/models/dashboard.dart';
+import '../../data/models/exams_model.dart';
+import '../../data/models/noticeboard_model.dart';
 import '../../data/models/password_change_model.dart';
+import '../../data/models/payments_model.dart';
 import '../constants/app_constants.dart';
 
 
@@ -132,6 +135,126 @@ class ApiService {
       return _processResponse(response, null);
     } catch (e) {
       return _handleError(e);
+    }
+  }
+
+  // In api_service.dart
+  Future<ApiResponse<PaymentModel>> getPayments(int studentId) async {
+    try {
+      final token = _dio.options.headers['Authorization'];
+      if (token == null || token.isEmpty) {
+        return ApiResponse<PaymentModel>(
+          success: false,
+          data: null,
+          message: 'Authentication token missing',
+        );
+      }
+
+      final response = await _dio.get(
+        '${AppConstants.paymentsEndpoint}/$studentId',
+        options: Options(
+          headers: {
+            'Authorization': _dio.options.headers['Authorization'],
+          },
+        ),
+      );
+
+      return _processResponse<PaymentModel>(
+        response,
+            (data) => PaymentModel.fromJson(data),
+      );
+    } catch (e) {
+      return _handleError<PaymentModel>(e);
+    }
+  }
+
+
+  // In api_service.dart
+  Future<ApiResponse<NoticeBoardResponse>> getNoticeBoard(int studentId) async {
+    try {
+      final token = _dio.options.headers['Authorization'];
+      if (token == null || token.isEmpty) {
+        return ApiResponse<NoticeBoardResponse>(
+          success: false,
+          data: null,
+          message: 'Authentication token missing',
+        );
+      }
+
+      final response = await _dio.get(
+        '${AppConstants.noticeboardEndpoint}/$studentId',
+        options: Options(
+          headers: {
+            'Authorization': _dio.options.headers['Authorization'],
+          },
+        ),
+      );
+
+      return _processResponse<NoticeBoardResponse>(
+        response,
+            (data) => NoticeBoardResponse.fromJson(data),
+      );
+    } catch (e) {
+      return _handleError<NoticeBoardResponse>(e);
+    }
+  }
+
+  // In api_service.dart
+  Future<ApiResponse<ExamListResponse>> getExamList(int studentId) async {
+    try {
+      final token = _dio.options.headers['Authorization'];
+      if (token == null || token.isEmpty) {
+        return ApiResponse<ExamListResponse>(
+          success: false,
+          data: null,
+          message: 'Authentication token missing',
+        );
+      }
+
+      final response = await _dio.get(
+        '${AppConstants.examListEndpoint}/$studentId',
+        options: Options(
+          headers: {
+            'Authorization': _dio.options.headers['Authorization'],
+          },
+        ),
+      );
+
+      return _processResponse<ExamListResponse>(
+        response,
+            (data) => ExamListResponse.fromJson(data),
+      );
+    } catch (e) {
+      return _handleError<ExamListResponse>(e);
+    }
+  }
+
+  Future<ApiResponse<ExamDetailsResponse>> getExamDetails(int examId, int studentId) async {
+    try {
+      final token = _dio.options.headers['Authorization'];
+      if (token == null || token.isEmpty) {
+        return ApiResponse<ExamDetailsResponse>(
+          success: false,
+          data: null,
+          message: 'Authentication token missing',
+        );
+      }
+
+      final response = await _dio.get(
+        '${AppConstants.examDetailsEndpoint}/$examId/$studentId',
+        options: Options(
+          headers: {
+            'Authorization': _dio.options.headers['Authorization'],
+          },
+        ),
+      );
+
+      return _processResponse<ExamDetailsResponse>(
+        response,
+            (data) => ExamDetailsResponse.fromJson(data),
+      );
+    } catch (e) {
+      return _handleError<ExamDetailsResponse>(e);
     }
   }
 

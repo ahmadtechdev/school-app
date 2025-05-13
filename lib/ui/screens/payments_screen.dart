@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/colors.dart';
+import '../controllers/payments_controller.dart';
+import '../../data/models/payments_model.dart';
 
 class PaymentsScreen extends StatefulWidget {
-  const PaymentsScreen({Key? key}) : super(key: key);
+  final int studentId;
+
+  const PaymentsScreen({super.key, required this.studentId});
 
   @override
   _PaymentsScreenState createState() => _PaymentsScreenState();
@@ -14,71 +19,7 @@ class PaymentsScreen extends StatefulWidget {
 
 class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  bool _isLoading = true;
-
-  // Mock data for payment cards
-  final List<Map<String, dynamic>> _paymentItems = [
-    {
-      'amount': 2000,
-      'title': 'Monthly Fee of March 2025',
-      'status': 'Paid',
-      'expanded': false,
-      'details': {
-        'student': 'Demo Name',
-        'feeTitle': 'Monthly Fee',
-        'year': '2025',
-        'totalFee': '2000.00',
-        'paidAmount': '2000',
-        'pendingFee': '0',
-      }
-    },
-    {
-      'amount': 2000,
-      'title': 'Monthly Fee of April 2025',
-      'status': 'Paid',
-      'expanded': false,
-      'details': {
-        'student': 'Demo Name',
-        'feeTitle': 'Monthly Fee',
-        'year': '2025',
-        'totalFee': '2000.00',
-        'paidAmount': '2000',
-        'pendingFee': '0',
-      }
-    },
-    {
-      'amount': 2000,
-      'title': 'Monthly Fee of February 2025',
-      'status': 'Paid',
-      'expanded': false,
-      'details': {
-        'student': 'Demo Name',
-        'feeTitle': 'Monthly Fee',
-        'year': '2025',
-        'totalFee': '2000.00',
-        'paidAmount': '2000',
-        'pendingFee': '0',
-      }
-    },
-    {
-      'amount': 1000,
-      'title': 'Monthly Fee of Dummy Fee',
-      'status': 'Paid',
-      'expanded': false,
-      'details': {
-        'student': 'Demo Name',
-        'feeTitle': 'Fee title',
-        'year': '2025',
-        'totalFee': '1000.00',
-        'paidAmount': '1000',
-        'pendingFee': '0',
-      }
-    },
-  ];
-
-  int _paidInvoices = 4;
-  int _dueInvoices = 0;
-  int _partialPaid = 0;
+  final PaymentController _paymentController = Get.put(PaymentController());
 
   @override
   void initState() {
@@ -88,12 +29,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
       duration: const Duration(milliseconds: 800),
     );
 
-    // Simulate loading data
-    Future.delayed(const Duration(seconds: 1), () {
+    _paymentController.fetchPayments(widget.studentId).then((_) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
         _controller.forward();
       }
     });
@@ -113,7 +50,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
         child: Column(
           children: [
             _buildAppBar(),
-            _isLoading ? _buildLoadingState() : _buildContent(),
+            Obx(() => _paymentController.isLoading.value
+                ? _buildLoadingState()
+                : _buildContent()),
           ],
         ),
       ),
@@ -189,6 +128,57 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
   }
 
   Widget _buildContent() {
+    if (_paymentController.errorMessage.isNotEmpty) {
+      return Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 60,
+                color: AppColors.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _paymentController.errorMessage.value,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => _paymentController.fetchPayments(widget.studentId),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_paymentController.paymentData.value == null) {
+      return Expanded(
+        child: Center(
+          child: Text(
+            'No payment data available',
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final paymentData = _paymentController.paymentData.value!;
+
     return Expanded(
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
@@ -209,7 +199,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
                     curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
                   ),
                 ),
-                child: _buildPaymentSummary(),
+                child: _buildPaymentSummary(paymentData),
               ),
             ),
           ),
@@ -220,7 +210,25 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
               top: AppConstants.defaultPadding,
               bottom: AppConstants.defaultPadding * 2,
             ),
-            sliver: SliverList(
+            sliver: paymentData.invoices.isEmpty
+                ? SliverToBoxAdapter(
+              child: Center(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 50),
+                    Text(
+                      'No invoices available',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+                : SliverList(
               delegate: SliverChildBuilderDelegate(
                     (context, index) {
                   return AnimationConfiguration.staggeredList(
@@ -229,12 +237,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
                     child: SlideAnimation(
                       verticalOffset: 50.0,
                       child: FadeInAnimation(
-                        child: _buildPaymentCard(index),
+                        child: _buildPaymentCard(paymentData, index),
                       ),
                     ),
                   );
                 },
-                childCount: _paymentItems.length,
+                childCount: paymentData.invoices.length,
               ),
             ),
           ),
@@ -243,26 +251,26 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildPaymentSummary() {
+  Widget _buildPaymentSummary(PaymentModel paymentData) {
     return Padding(
       padding: const EdgeInsets.all(AppConstants.defaultPadding),
       child: Row(
         children: [
           _buildSummaryCard(
             title: 'Paid Invoices',
-            value: _paidInvoices,
+            value: paymentData.totalPaidInvoices,
             color: AppColors.success,
             icon: Icons.check_circle_outline,
           ),
           _buildSummaryCard(
             title: 'Due Invoices',
-            value: _dueInvoices,
+            value: paymentData.totalPendingInvoices,
             color: AppColors.error,
             icon: Icons.warning_amber_outlined,
           ),
           _buildSummaryCard(
             title: 'Partial Paid',
-            value: _partialPaid,
+            value: paymentData.totalPartialpaidInvoices,
             color: AppColors.warning,
             icon: Icons.timelapse_outlined,
           ),
@@ -329,24 +337,36 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildPaymentCard(int index) {
-    final item = _paymentItems[index];
-    final isExpanded = item['expanded'] as bool;
-    final status = item['status'] as String;
+  // Map to keep track of expanded state for each invoice
+  final Map<int, bool> _expandedItems = {};
+
+  Widget _buildPaymentCard(PaymentModel paymentData, int index) {
+    final invoice = paymentData.invoices[index];
+    final isExpanded = _expandedItems[invoice.id] ?? false;
 
     Color statusColor;
-    switch (status) {
-      case 'Paid':
+    switch (invoice.status.toLowerCase()) {
+      case 'paid':
         statusColor = AppColors.success;
         break;
-      case 'Due':
+      case 'pending':
+      case 'due':
         statusColor = AppColors.error;
         break;
-      case 'Partial':
+      case 'partial':
+      case 'partialpaid':
         statusColor = AppColors.warning;
         break;
       default:
         statusColor = AppColors.info;
+    }
+
+    // Try to parse the amount as a number for display
+    int amountValue;
+    try {
+      amountValue = int.parse(invoice.amount.replaceAll(RegExp(r'[^0-9]'), ''));
+    } catch (e) {
+      amountValue = 0;
     }
 
     return Container(
@@ -371,7 +391,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
               InkWell(
                 onTap: () {
                   setState(() {
-                    _paymentItems[index]['expanded'] = !isExpanded;
+                    _expandedItems[invoice.id] = !isExpanded;
                   });
                 },
                 child: Padding(
@@ -398,7 +418,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
                         ),
                         child: Center(
                           child: Text(
-                            '${item['amount']}',
+                            amountValue.toString(),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -413,7 +433,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              item['title'],
+                              invoice.name,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -431,7 +451,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                status,
+                                invoice.status,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -481,17 +501,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
                     ),
                     child: Column(
                       children: [
-                        _buildDetailRow(
-                            'Student', item['details']['student']),
-                        _buildDetailRow(
-                            'Fee title', item['details']['feeTitle']),
-                        _buildDetailRow('Year', item['details']['year']),
-                        _buildDetailRow(
-                            'Total Fee', item['details']['totalFee']),
-                        _buildDetailRow('Paid amount',
-                            item['details']['paidAmount']),
-                        _buildDetailRow(
-                            'Pending Fee', item['details']['pendingFee']),
+                        _buildDetailRow('Student', paymentData.student.name),
+                        _buildDetailRow('Fee title', invoice.name),
+                        _buildDetailRow('Total Fee', invoice.amount),
+                        _buildDetailRow('Paid amount', invoice.amountPaid.toString()),
+                        _buildDetailRow('Pending Fee', invoice.pendingAmount.toString()),
+                        _buildDetailRow('Status', invoice.status),
                       ],
                     ),
                   )

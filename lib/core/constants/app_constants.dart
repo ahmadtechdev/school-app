@@ -1,9 +1,13 @@
 class AppConstants {
   // API endpoints
-  static const String baseUrl = 'https://mamnoonskills.com/api';
+  static const String baseUrl = 'https://demo.girdonawah.com/api';
   static const String loginEndpoint = '/login';
   static const String logoutEndpoint = '/logout';
   static const String dashboardEndpoint = '/dashboard';
+  static const String paymentsEndpoint = '/get-payments';
+  static const String noticeboardEndpoint = '/get-noticeboard';
+  static const String examListEndpoint = '/get-exam-list';
+  static const String examDetailsEndpoint = '/get-result-card';
 
   // Storage keys
   static const String authTokenKey = 'auth_token';

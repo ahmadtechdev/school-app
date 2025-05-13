@@ -3,10 +3,9 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import '../../core/constants/app_constants.dart';
 import '../../core/constants/colors.dart';
+import '../../data/models/noticeboard_model.dart';
+import '../controllers/noticeboard_controller.dart';
 
 
 class NoticeBoardScreen extends StatefulWidget {
@@ -55,8 +54,6 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> with TickerProvid
     // In a real implementation, this would be:
     // _noticeBoardController.fetchNotices();
 
-    // For now, we'll use dummy data
-    _noticeBoardController.loadDummyData();
   }
 
   @override
@@ -98,8 +95,9 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> with TickerProvid
     );
   }
 
+  // Update the _buildHeader method to use controller's student data:
   Widget _buildHeader() {
-    return Container(
+    return Obx(() => Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -160,7 +158,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> with TickerProvid
                 tag: 'student_${widget.studentId}',
                 child: ClipOval(
                   child: CachedNetworkImage(
-                    imageUrl: widget.studentImage,
+                    imageUrl: _noticeBoardController.student.value?.image ?? widget.studentImage,
                     width: 40,
                     height: 40,
                     fit: BoxFit.cover,
@@ -188,7 +186,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> with TickerProvid
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.studentName,
+                    _noticeBoardController.student.value?.name ?? widget.studentName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -208,7 +206,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> with TickerProvid
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildSearchBar() {
@@ -299,7 +297,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> with TickerProvid
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () => _noticeBoardController.loadDummyData(),
+            onPressed: () => _noticeBoardController.fetchNotices(),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -317,49 +315,51 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> with TickerProvid
 
   Widget _buildEmptyView() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FadeTransition(
-            opacity: _animation,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FadeTransition(
+              opacity: _animation,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.notification_important_outlined,
+                  size: 60,
+                  color: AppColors.primary,
+                ),
               ),
-              child: const Icon(
-                Icons.notification_important_outlined,
-                size: 60,
-                color: AppColors.primary,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              _isSearching ? 'No notices found matching your search' : 'No notices available yet',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
               ),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            _isSearching ? 'No notices found matching your search' : 'No notices available yet',
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (_isSearching) ...[
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                _searchController.clear();
-                _noticeBoardController.searchNotices('');
-                setState(() {
-                  _isSearching = false;
-                });
-              },
-              child: const Text('Clear Search'),
-            ),
+            if (_isSearching) ...[
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  _searchController.clear();
+                  _noticeBoardController.searchNotices('');
+                  setState(() {
+                    _isSearching = false;
+                  });
+                },
+                child: const Text('Clear Search'),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -368,7 +368,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> with TickerProvid
     return AnimationLimiter(
       child: RefreshIndicator(
         onRefresh: () async {
-          await _noticeBoardController.loadDummyData();
+          await _noticeBoardController.fetchNotices();
         },
         color: AppColors.primary,
         child: ListView.builder(
@@ -773,129 +773,4 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> with TickerProvid
   }
 }
 
-// Model class for Notice
-class Notice {
-  final String id;
-  final String title;
-  final String description;
-  final DateTime date;
-  final bool hasAttachment;
-  final String? attachmentUrl;
-  final String? attachmentName;
 
-  Notice({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.date,
-    this.hasAttachment = false,
-    this.attachmentUrl,
-    this.attachmentName,
-  });
-}
-
-// Controller for Notice Board
-class NoticeBoardController extends GetxController {
-  final String studentId;
-
-  var isLoading = false.obs;
-  var error = ''.obs;
-  var notices = <Notice>[].obs;
-  var filteredNotices = <Notice>[].obs;
-
-  NoticeBoardController({required this.studentId});
-
-  Future<List<Notice>> loadDummyData() async {
-    isLoading.value = true;
-    error.value = '';
-
-    try {
-      await Future.delayed(const Duration(seconds: 2)); // Simulate API delay
-
-      final dummyNotices = [
-        Notice(
-          id: '1',
-          title: 'Annual Sports Day',
-          description: 'Dear parents, we are excited to announce our Annual Sports Day will be held on May 15th, 2025...',
-          date: DateTime(2025, 5, 1),
-          hasAttachment: true,
-          attachmentUrl: 'https://example.com/sports_day_schedule.pdf',
-          attachmentName: 'Sports Day Schedule.pdf',
-        ),
-        Notice(
-          id: '2',
-          title: 'Parent-Teacher Meeting',
-          description: 'The Parent-Teacher Meeting for this semester is scheduled for May 10th, 2025...',
-          date: DateTime(2025, 4, 25),
-          hasAttachment: true,
-          attachmentUrl: 'https://example.com/ptm_schedule.pdf',
-          attachmentName: 'PTM Schedule.pdf',
-        ),
-        Notice(
-          id: '3',
-          title: 'Summer Vacation Announcement',
-          description: 'Summer vacation will begin from June 1st, 2025...',
-          date: DateTime(2025, 4, 15),
-          hasAttachment: false,
-        ),
-        Notice(
-          id: '4',
-          title: 'Fee Payment Reminder',
-          description: 'This is a gentle reminder that the fees for the next quarter are due by May 20th, 2025...',
-          date: DateTime(2025, 4, 10),
-          hasAttachment: false,
-        ),
-        Notice(
-          id: '5',
-          title: 'Science Exhibition',
-          description: 'A Science Exhibition is being organized on April 28th, 2025...',
-          date: DateTime(2025, 4, 5),
-          hasAttachment: true,
-          attachmentUrl: 'https://example.com/science_exhibition_guidelines.pdf',
-          attachmentName: 'Science Exhibition Guidelines.pdf',
-        ),
-      ];
-
-      notices.value = dummyNotices;
-      filteredNotices.value = dummyNotices;
-      isLoading.value = false;
-
-      return dummyNotices;
-    } catch (e) {
-      error.value = 'Failed to load notices. Please try again.';
-      isLoading.value = false;
-      return [];
-    }
-  }
-
-
-  void searchNotices(String query) {
-    if (query.isEmpty) {
-      filteredNotices.value = notices;
-      return;
-    }
-
-    filteredNotices.value = notices.where((notice) {
-      return notice.title.toLowerCase().contains(query.toLowerCase()) ||
-          notice.description.toLowerCase().contains(query.toLowerCase());
-    }).toList();
-  }
-
-  // In a real app, you'd have a method like this to fetch actual data
-  Future<void> fetchNotices() async {
-    try {
-      isLoading.value = true;
-      error.value = '';
-
-      // API call would go here
-      // final response = await apiService.getNotices(studentId);
-      // notices.value = response.notices;
-      // filteredNotices.value = notices;
-
-      isLoading.value = false;
-    } catch (e) {
-      error.value = 'Failed to load notices. Please try again.';
-      isLoading.value = false;
-    }
-  }
-}

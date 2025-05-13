@@ -798,7 +798,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         studentImage: student.image,
       ));
     }else if(moduleTitle=="Payments"){
-      Get.to(() => PaymentsScreen());
+      Get.to(() => PaymentsScreen(studentId: student.id));
     }else if(moduleTitle=="Study\nMaterial"){
       Get.to(() => StudyMaterialScreen(studentId: student.id.toString(), studentName: student.name, studentImage: student.image,));
     } else if(moduleTitle=="Notice\nBoard"){

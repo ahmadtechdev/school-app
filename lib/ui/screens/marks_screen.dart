@@ -4,8 +4,6 @@ import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
-
-import '../../core/constants/app_constants.dart';
 import '../../core/constants/colors.dart';
 
 import '../controllers/marks_controller.dart';
@@ -35,7 +33,7 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _marksController = Get.put(MarksController(studentId: widget.studentId));
+    _marksController = Get.put(MarksController(studentId: int.parse(widget.studentId)));
 
     _fadeAnimationController = AnimationController(
       vsync: this,
@@ -76,12 +74,13 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
                   return _buildErrorState();
                 }
 
-                if (_marksController.examsList.isEmpty) {
+                if (_marksController.exams.isEmpty) {
                   return _buildEmptyState();
                 }
 
                 return _buildExamsList();
               }),
+
             ),
           ],
         ),
@@ -270,7 +269,7 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
-            onPressed: _marksController.fetchExamsList,
+            onPressed: _marksController.fetchExamList,
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
@@ -321,7 +320,7 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
-            onPressed: _marksController.fetchExamsList,
+            onPressed: _marksController.fetchExamList,
             icon: const Icon(Icons.refresh),
             label: const Text('Refresh'),
             style: ElevatedButton.styleFrom(
@@ -342,14 +341,14 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
     return AnimationLimiter(
       child: RefreshIndicator(
         onRefresh: () async {
-          await _marksController.fetchExamsList();
+          await _marksController.fetchExamList();
         },
         color: AppColors.primary,
         child: ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: _marksController.examsList.length,
+          itemCount: _marksController.exams.length,
           itemBuilder: (context, index) {
-            final exam = _marksController.examsList[index];
+            final exam = _marksController.exams[index];
             return AnimationConfiguration.staggeredList(
               position: index,
               duration: const Duration(milliseconds: 500),
@@ -360,11 +359,12 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
                     onTap: () {
                       Get.to(
                             () => ExamDetailsScreen(
-                          examId: exam.id,
+                          examId: exam.id.toString(),
                           examName: exam.name,
                           studentName: widget.studentName,
                           studentImage: widget.studentImage,
                         ),
+                        arguments: {'studentId': int.parse(widget.studentId)},
                         transition: Transition.rightToLeftWithFade,
                       );
                     },
@@ -389,7 +389,7 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
                             onTap: () {
                               Get.to(
                                     () => ExamDetailsScreen(
-                                  examId: exam.id,
+                                  examId: exam.id.toString(),
                                   examName: exam.name,
                                   studentName: widget.studentName,
                                   studentImage: widget.studentImage,

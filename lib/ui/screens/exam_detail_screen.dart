@@ -8,6 +8,7 @@ import 'package:lottie/lottie.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/colors.dart';
+import '../../data/models/exams_model.dart';
 import '../controllers/exam_details_controller.dart';
 
 class ExamDetailsScreen extends StatefulWidget {
@@ -37,7 +38,7 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _examDetailsController = Get.put(ExamDetailsController(examId: widget.examId));
+    _examDetailsController = Get.put(ExamDetailsController(examId: int.parse(widget.examId)));
 
     _animationController = AnimationController(
       vsync: this,
@@ -60,6 +61,7 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
 
     _animationController.forward();
   }
+
 
   @override
   void dispose() {
@@ -411,6 +413,7 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
   Widget _buildExamDetails() {
     final examDetails = _examDetailsController.examDetails.value!;
 
+
     return FadeTransition(
       opacity: _contentAnimation,
       child: SlideTransition(
@@ -449,7 +452,8 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
     );
   }
 
-  Widget _buildStudentInfoCard(dynamic examDetails) {
+// Update the _buildStudentInfoCard method:
+  Widget _buildStudentInfoCard(ExamDetailsResponse examDetails) {
     return AnimationConfiguration.synchronized(
       duration: const Duration(milliseconds: 500),
       child: SlideAnimation(
@@ -496,11 +500,11 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
                   ],
                 ),
                 const SizedBox(height: 15),
-                _buildInfoRow('Roll Number', examDetails.rollNumber ?? 'N/A'),
-                _buildInfoRow('Class/Grade', examDetails.grade ?? 'N/A'),
-                _buildInfoRow('Date of Birth', examDetails.dateOfBirth ?? 'N/A'),
-                _buildInfoRow('Father\'s Name', examDetails.fatherName ?? 'N/A'),
-                _buildInfoRow('Mother\'s Name', examDetails.motherName ?? 'N/A'),
+                _buildInfoRow('Roll Number', examDetails.student.rollNo ?? 'N/A'),
+                _buildInfoRow('Class/Grade', examDetails.student.className ?? 'N/A'),
+                _buildInfoRow('Date of Birth', examDetails.student.dateOfBirth ?? 'N/A'),
+                _buildInfoRow('Father\'s Name', examDetails.student.fatherName ?? 'N/A'),
+                _buildInfoRow('Mother\'s Name', examDetails.student.motherName ?? 'N/A'),
               ],
             ),
           ),
@@ -508,7 +512,6 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
       ),
     );
   }
-
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -535,7 +538,8 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
     );
   }
 
-  Widget _buildPerformanceSummary(dynamic examDetails) {
+// Update the _buildPerformanceSummary method:
+  Widget _buildPerformanceSummary(ExamDetailsResponse examDetails) {
     return AnimationConfiguration.synchronized(
       duration: const Duration(milliseconds: 600),
       child: SlideAnimation(
@@ -575,21 +579,21 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
                       children: [
                         _buildPerformanceIndicator(
                           'Total Marks',
-                          '${examDetails.totalMarks ?? 0}',
+                          '${examDetails.totalMarks}',
                           Icons.assessment,
                           AppColors.primary,
                         ),
                         _buildPerformanceIndicator(
                           'Obtained',
-                          '${examDetails.obtainedMarks ?? 0}',
+                          '${examDetails.totalObtainedMarks}',
                           Icons.done_all,
                           AppColors.accent,
                         ),
                         _buildPerformanceIndicator(
                           'Percentage',
-                          '${examDetails.percentage ?? 0}%',
+                          '${examDetails.totalPercentage.toStringAsFixed(2)}%',
                           Icons.percent,
-                          _getPerformanceColor(examDetails.percentage ?? 0),
+                          _getPerformanceColor(examDetails.totalPercentage),
                         ),
                       ],
                     ),
@@ -604,7 +608,6 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
       ),
     );
   }
-
   Widget _buildPerformanceIndicator(String label, String value, IconData icon, Color color) {
     return Column(
       children: [
@@ -788,319 +791,274 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
     );
   }
 
-  Widget _buildSubjectsSection(dynamic examDetails) {
-    // For demonstration, using static data that matches the screenshot
-    // In a real app, this would use examDetails.subjects
-    List<Map<String, dynamic>> subjects = [
-      {'name': 'English', 'totalMarks': 100, 'obtainedMarks': 87, 'percentage': 87},
-      {'name': 'Urdu', 'totalMarks': 100, 'obtainedMarks': 0, 'percentage': 0},
-      {'name': 'Math', 'totalMarks': 85, 'obtainedMarks': 0, 'percentage': 0},
-      {'name': 'Physics', 'totalMarks': 75, 'obtainedMarks': 0, 'percentage': 0},
-      {'name': 'Chemistry', 'totalMarks': 75, 'obtainedMarks': 0, 'percentage': 0},
-    ];
-
+  // Update the _buildSubjectsSection method:
+  Widget _buildSubjectsSection(ExamDetailsResponse examDetails) {
     return AnimationConfiguration.synchronized(
-        duration: const Duration(milliseconds: 700),
-        child: SlideAnimation(
-            verticalOffset: 50.0,
-            child: FadeInAnimation(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+      duration: const Duration(milliseconds: 700),
+      child: SlideAnimation(
+        verticalOffset: 50.0,
+        child: FadeInAnimation(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               const Padding(
-              padding: EdgeInsets.only(left: 8, bottom: 12),
-              child: Text(
-                'Subject Wise Performance',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                padding: EdgeInsets.only(left: 8, bottom: 12),
+                child: Text(
+                  'Subject Wise Performance',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.shadow,
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                  children: [
-              // Table Header
               Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(15),
-                  topRight: Radius.circular(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Table Header
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(15),
+                          topRight: Radius.circular(15),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            flex: 2,
+                            child: Text(
+                              'Subject',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Total\nMarks',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Obtained\nMarks',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Percentage',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Table Content
+                    ...examDetails.resultCard.map((subject) {
+                      final percentage = double.tryParse(subject.percentage) ?? 0;
+                      return Container(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Colors.grey.shade200,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  subject.subject,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  subject.totalMarks,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  subject.obtainedMarks,
+                                  style: TextStyle(
+                                    color: subject.obtainedMarks != '0'
+                                        ? AppColors.textPrimary
+                                        : AppColors.error,
+                                    fontWeight: subject.obtainedMarks != '0'
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  subject.percentage != 'N/A' && subject.percentage != '0'
+                                      ? '${percentage.toStringAsFixed(1)}%'
+                                      : 'N/A',
+                                  style: TextStyle(
+                                    color: subject.percentage != 'N/A' && subject.percentage != '0'
+                                        ? _getPerformanceColor(percentage)
+                                        : AppColors.textSecondary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+
+                    // Total Marks Summary
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(15),
+                          bottomRight: Radius.circular(15),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Total Marks',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              Text(
+                                '${examDetails.totalObtainedMarks}/${examDetails.totalMarks}',
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Percentage',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              Text(
+                                '${examDetails.totalPercentage.toStringAsFixed(2)}%',
+                                style: TextStyle(
+                                  color: _getPerformanceColor(examDetails.totalPercentage),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Result',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: examDetails.totalPercentage >= 40
+                                      ? AppColors.success.withOpacity(0.1)
+                                      : AppColors.error.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  examDetails.totalPercentage >= 40 ? 'PASSED' : 'FAILED',
+                                  style: TextStyle(
+                                    color: examDetails.totalPercentage >= 40
+                                        ? AppColors.success
+                                        : AppColors.error,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  const Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Subject',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Total\nMarks',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Obtained\nMarks',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Percentage',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Table Content
-            ...subjects.map((subject) {
-    return Container(
-    decoration: BoxDecoration(
-    border: Border(
-    bottom: BorderSide(
-    color: Colors.grey.shade200,
-    width: 1,
-    ),
-    ),
-    ),
-    child: Padding(
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-    child: Row(
-    children: [
-    Expanded(
-    flex: 2,
-    child: Text(
-    subject['name'],
-    style: const TextStyle(
-    color: AppColors.textPrimary,
-    fontWeight: FontWeight.w500,
-    fontSize: 15,
-    ),
-    ),
-    ),
-    Expanded(
-    child: Text(
-    '${subject['totalMarks']}',
-    style: const TextStyle(
-    color: AppColors.textPrimary,
-    fontSize: 14,
-    ),
-    textAlign: TextAlign.center,
-    ),
-    ),
-    Expanded(
-    child: Text(
-    '${subject['obtainedMarks']}',
-    style: TextStyle(
-    color: subject['obtainedMarks'] > 0
-    ? AppColors.textPrimary
-        : AppColors.error,
-    fontWeight: subject['obtainedMarks'] > 0
-    ? FontWeight.bold
-        : FontWeight.normal,
-    fontSize: 14,
-    ),
-    textAlign: TextAlign.center,
-    ),
-    ),
-    Expanded(
-    child: Text(
-    subject['obtainedMarks'] > 0
-    ? '${subject['percentage']}%'
-        : 'N/A',
-    style: TextStyle(
-    color: subject['obtainedMarks'] > 0
-    ? _getPerformanceColor(subject['percentage'].toDouble())
-        : AppColors.textSecondary,
-    fontWeight: FontWeight.bold,
-    fontSize: 14,
-    ),
-    textAlign: TextAlign.center,
-    ),
-    ),
-    ],
-    ),
-    ),
-    );
-    }).toList(),
-
-    // Total Marks Summary
-    Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-    color: Colors.grey.shade50,
-    borderRadius: const BorderRadius.only(
-    bottomLeft: Radius.circular(15),
-    bottomRight: Radius.circular(15),
-    ),
-    ),
-    child: Column(
-    children: [
-    Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-    const Text(
-    'Total Marks',
-    style: TextStyle(
-    color: AppColors.textPrimary,
-    fontWeight: FontWeight.bold,
-    fontSize: 15,
-    ),
-    ),
-      Text(
-        '${examDetails.totalMarks ?? 0}/${examDetails.obtainedMarks ?? 0}',
-        style: const TextStyle(
-          color: AppColors.primary,
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-        ),
-      ),
-    ],
-    ),
-      const SizedBox(height: 12),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'Percentage',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
-          ),
-          Text(
-            '${examDetails.percentage ?? 0}%',
-            style: TextStyle(
-              color: _getPerformanceColor(examDetails.percentage ?? 0),
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'Result',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: (examDetails.isPassed ?? true)
-                  ? AppColors.success.withOpacity(0.1)
-                  : AppColors.error.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              (examDetails.isPassed ?? true) ? 'PASSED' : 'FAILED',
-              style: TextStyle(
-                color: (examDetails.isPassed ?? true)
-                    ? AppColors.success
-                    : AppColors.error,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: AppColors.primary.withOpacity(0.1),
+            ],
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Teacher\'s Comment',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              examDetails.teacherComment ?? 'No comments available for this exam.',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-                fontStyle: examDetails.teacherComment != null
-                    ? FontStyle.normal
-                    : FontStyle.italic,
-              ),
-            ),
-          ],
-        ),
       ),
-    ],
-    ),
-    ),
-                  ],
-              ),
-            ),
-        ]),
-
-    ),
-    ),
-
     );
   }
-
   Color _getPerformanceColor(double percentage) {
     if (percentage >= 80) {
       return AppColors.success;
