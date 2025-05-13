@@ -7,13 +7,14 @@ import '../../data/repositories/exam_repository.dart';
 
 class ExamDetailsController extends GetxController {
   final int examId;
+  final int studentId;
   final ExamRepository _repository = ExamRepository();
 
   var isLoading = true.obs;
   var error = ''.obs;
   var examDetails = Rxn<ExamDetailsResponse>();
 
-  ExamDetailsController({required this.examId});
+  ExamDetailsController({required this.examId, required this.studentId});
 
   @override
   void onInit() {
@@ -23,11 +24,9 @@ class ExamDetailsController extends GetxController {
 
   Future<void> fetchExamDetails() async {
     try {
+
       isLoading(true);
       error('');
-
-      // Get studentId from the previous screen
-      final int studentId = Get.arguments['studentId'] ?? 0;
 
       final ApiResponse<ExamDetailsResponse> response =
       await _repository.getExamDetails(examId, studentId);

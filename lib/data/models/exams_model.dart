@@ -24,16 +24,28 @@ class ExamListResponse {
 class Exam {
   final int id;
   final String name;
+  final String date;
+  final int totalMarks;
+  final int obtainedMarks;
+  final double percentage;
 
   Exam({
     required this.id,
     required this.name,
+    required this.date,
+    required this.totalMarks,
+    required this.obtainedMarks,
+    required this.percentage,
   });
 
   factory Exam.fromJson(Map<String, dynamic> json) {
     return Exam(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
+      date: json['date'] ?? '',
+      totalMarks: json['total_marks'] ?? 0,
+      obtainedMarks: json['obtained_marks'] ?? 0,
+      percentage: (json['percentage'] ?? 0.0).toDouble(),
     );
   }
 }

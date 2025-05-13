@@ -7,6 +7,10 @@ import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/colors.dart';
+import '../../core/services/api_service.dart';
+import '../../data/models/attendance_model.dart';
+import '../../data/repositories/attendance_repository.dart';
+import '../controllers/attendance_controller.dart';
 
 class AttendanceScreen extends StatefulWidget {
   final String studentId;
@@ -34,17 +38,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
   late DateTime _selectedDay;
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
-  // Placeholder for attendance data
-  final Map<DateTime, bool> _attendanceData = {};
-
-  // Statistics
-  int _totalSchoolDays = 0;
-  int _totalPresent = 0;
-  int _totalAbsent = 0;
-  double _attendancePercentage = 0.0;
-
-  bool _isLoading = true;
-  String _errorMessage = '';
+  final AttendanceController _controller = Get.put(
+    AttendanceController(
+      repository: AttendanceRepository(apiService: ApiService()),
+    ),
+  );
 
   @override
   void initState() {
@@ -52,7 +50,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
     _focusedDay = DateTime.now();
     _selectedDay = DateTime.now();
 
-    // Initialize animations
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -76,12 +73,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
       curve: Curves.easeOutQuint,
     ));
 
-    // Start animations
     _fadeController.forward();
     _slideController.forward();
-
-    // Load data
-    _loadAttendanceData();
   }
 
   @override
@@ -91,52 +84,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
     super.dispose();
   }
 
-  // Placeholder method to load attendance data
-  // In production, this would make an API call
-  Future<void> _loadAttendanceData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
+  // Calculate statistics based on real data
+  int get _totalSchoolDays => _controller.attendanceData
+      .where((record) => record.status != 'Not Taken')
+      .length;
 
-    try {
-      // Simulate API delay
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Mock data for the current month
-      final DateTime now = DateTime.now();
-      final DateTime firstDay = DateTime(now.year, now.month, 1);
-      final DateTime lastDay = DateTime(now.year, now.month + 1, 0);
-
-      // Generate random attendance data for demonstration
-      for (int i = 1; i <= lastDay.day; i++) {
-        // Skip weekends and future days
-        final DateTime day = DateTime(now.year, now.month, i);
-        if (day.weekday < 6 && day.isBefore(now.add(const Duration(days: 1)))) {
-          // Present: true, Absent: false
-          // Randomly generate attendance status with 80% probability of being present
-          _attendanceData[day] = i % 8 != 0 && i % 7 != 0; // Make some days absent
-        }
-      }
-
-      // Calculate statistics
-      _totalSchoolDays = _attendanceData.length;
-      _totalPresent = _attendanceData.values.where((present) => present).length;
-      _totalAbsent = _totalSchoolDays - _totalPresent;
-      _attendancePercentage = _totalSchoolDays > 0
-          ? (_totalPresent / _totalSchoolDays) * 100
-          : 0.0;
-
-      setState(() {
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to load attendance data. Please try again.';
-      });
-    }
-  }
+  int get _totalPresent => _controller.totalPresents.value;
+  int get _totalAbsent => _totalSchoolDays - _totalPresent;
+  double get _attendancePercentage => _totalSchoolDays > 0
+      ? (_totalPresent / _totalSchoolDays) * 100
+      : 0.0;
 
   @override
   Widget build(BuildContext context) {
@@ -147,11 +104,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
           children: [
             _buildHeader(),
             Expanded(
-              child: _isLoading
+              child: Obx(() => _controller.isLoading.value
                   ? _buildLoadingView()
-                  : _errorMessage.isNotEmpty
+                  : _controller.errorMessage.value.isNotEmpty
                   ? _buildErrorView()
-                  : _buildAttendanceContent(),
+                  : _buildAttendanceContent()),
             ),
           ],
         ),
@@ -311,7 +268,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
           ),
           const SizedBox(height: 16),
           Text(
-            _errorMessage,
+            _controller.errorMessage.toString(),
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 16,
@@ -320,7 +277,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: _loadAttendanceData,
+            onPressed: _controller.loadAttendance,
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
@@ -343,7 +300,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
       child: SlideTransition(
         position: _slideAnimation,
         child: RefreshIndicator(
-          onRefresh: _loadAttendanceData,
+          onRefresh: () => _controller.loadAttendance(),
           color: AppColors.primary,
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -360,6 +317,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
     );
   }
 
+  // Update the calendar widget to handle month changes
   Widget _buildCalendarCard() {
     return AnimationConfiguration.staggeredList(
       position: 0,
@@ -404,7 +362,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
                     focusedDay: _focusedDay,
                     calendarFormat: _calendarFormat,
                     selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                    eventLoader: (day) => _attendanceData.containsKey(day) ? [_attendanceData[day]!] : [],
                     onFormatChanged: (format) {
                       setState(() {
                         _calendarFormat = format;
@@ -413,6 +370,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
                     onPageChanged: (focusedDay) {
                       setState(() {
                         _focusedDay = focusedDay;
+                        _controller.changeMonth(focusedDay.month, focusedDay.year);
                       });
                     },
                     onDaySelected: (selectedDay, focusedDay) {
@@ -421,13 +379,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
                         _focusedDay = focusedDay;
                       });
 
-                      if (_attendanceData.containsKey(selectedDay)) {
-                        String status = _attendanceData[selectedDay]! ? 'Present' : 'Absent';
+                      final attendanceRecord = _controller.attendanceData.firstWhere(
+                            (record) => isSameDay(record.date, selectedDay),
+                        orElse: () => AttendanceRecord(date: selectedDay, status: 'Not Taken'),
+                      );
+
+                      if (attendanceRecord.status != 'Not Taken') {
                         Get.snackbar(
                           DateFormat('EEEE, d MMMM').format(selectedDay),
-                          'Status: $status',
+                          'Status: ${attendanceRecord.status}',
                           snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: _attendanceData[selectedDay]!
+                          backgroundColor: attendanceRecord.status == 'Present'
                               ? Colors.green.withOpacity(0.9)
                               : Colors.red.withOpacity(0.9),
                           colorText: Colors.white,
@@ -487,7 +449,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
                       titleCentered: true,
                       leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.primary),
                       rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.primary),
-                      titleTextStyle: TextStyle(fontSize: 0), // Hide the default title
+                      titleTextStyle: TextStyle(fontSize: 0),
                     ),
                     calendarStyle: CalendarStyle(
                       outsideDaysVisible: false,
@@ -503,10 +465,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
       ),
     );
   }
-
   Widget _buildCalendarDay(DateTime day) {
-    if (_attendanceData.containsKey(day)) {
-      final bool isPresent = _attendanceData[day]!;
+    final attendanceRecord = _controller.attendanceData.firstWhere(
+          (record) => isSameDay(record.date, day),
+      orElse: () => AttendanceRecord(date: day, status: 'Not Taken'),
+    );
+
+    if (attendanceRecord.status != 'Not Taken') {
+      final bool isPresent = attendanceRecord.status == 'Present';
       return AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         margin: const EdgeInsets.all(4),
@@ -544,7 +510,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
       ),
     );
   }
-
   Widget _buildLegendItem(String label, Color color) {
     return Row(
       children: [
@@ -569,6 +534,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> with TickerProvider
     );
   }
 
+  // Update statistics widgets to use the calculated values
   Widget _buildAttendanceSummary() {
     return AnimationConfiguration.staggeredList(
       position: 1,

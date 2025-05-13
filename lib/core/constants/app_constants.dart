@@ -8,6 +8,8 @@ class AppConstants {
   static const String noticeboardEndpoint = '/get-noticeboard';
   static const String examListEndpoint = '/get-exam-list';
   static const String examDetailsEndpoint = '/get-result-card';
+  static const String attendanceEndpoint = '/get-attendance';
+  static const String studyMaterialEndpoint = '/get-studymaterial';
 
   // Storage keys
   static const String authTokenKey = 'auth_token';

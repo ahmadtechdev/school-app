@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:get/get.dart';
@@ -361,6 +363,7 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
                             () => ExamDetailsScreen(
                           examId: exam.id.toString(),
                           examName: exam.name,
+                              studentId: widget.studentId,
                           studentName: widget.studentName,
                           studentImage: widget.studentImage,
                         ),
@@ -391,6 +394,7 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
                                     () => ExamDetailsScreen(
                                   examId: exam.id.toString(),
                                   examName: exam.name,
+                                      studentId: widget.studentId,
                                   studentName: widget.studentName,
                                   studentImage: widget.studentImage,
                                 ),
@@ -408,13 +412,16 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
                                     width: 50,
                                     height: 50,
                                     decoration: BoxDecoration(
-                                      color: _getExamTypeColor(exam.examType).withOpacity(0.2),
+                                      // color: _getExamTypeColor(exam.examType).withOpacity(0.2),
+                                      color: _getRandomColor().withOpacity(0.2),
                                       shape: BoxShape.circle,
                                     ),
                                     child: Center(
                                       child: Icon(
-                                        _getExamTypeIcon(exam.examType),
-                                        color: _getExamTypeColor(exam.examType),
+                                        // _getExamTypeIcon(exam.examType),
+                                          Icons.school,
+                                        // color: _getExamTypeColor(exam.examType),
+                                        color: _getRandomColor(), // Different color for icon
                                         size: 24,
                                       ),
                                     ),
@@ -559,6 +566,21 @@ class _MarksScreenState extends State<MarksScreen> with TickerProviderStateMixin
       default:
         return AppColors.success;
     }
+  }
+
+  // List of available colors
+  final List<Color> _randomColors = [
+    AppColors.primary,
+    AppColors.warning,
+    AppColors.info,
+    AppColors.accent,
+    AppColors.success,
+  ];
+
+// Generate a random color (different each time)
+  Color _getRandomColor() {
+    final random = Random(); // No seed → truly random
+    return _randomColors[random.nextInt(_randomColors.length)];
   }
 
   Color _getPercentageColor(double percentage) {

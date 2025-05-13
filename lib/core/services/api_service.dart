@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 import '../../data/models/api_response.dart';
+import '../../data/models/attendance_model.dart';
 import '../../data/models/dashboard.dart';
 import '../../data/models/exams_model.dart';
 import '../../data/models/noticeboard_model.dart';
@@ -230,6 +231,7 @@ class ApiService {
   }
 
   Future<ApiResponse<ExamDetailsResponse>> getExamDetails(int examId, int studentId) async {
+    print("Check 1");
     try {
       final token = _dio.options.headers['Authorization'];
       if (token == null || token.isEmpty) {
@@ -239,6 +241,7 @@ class ApiService {
           message: 'Authentication token missing',
         );
       }
+    print("Check 12");
 
       final response = await _dio.get(
         '${AppConstants.examDetailsEndpoint}/$examId/$studentId',
@@ -249,12 +252,53 @@ class ApiService {
         ),
       );
 
+      print("Check 123");
+      print(response.data);
+
       return _processResponse<ExamDetailsResponse>(
         response,
             (data) => ExamDetailsResponse.fromJson(data),
       );
     } catch (e) {
       return _handleError<ExamDetailsResponse>(e);
+    }
+  }
+
+  Future<ApiResponse<AttendanceResponse>> getAttendance(
+      int studentId, {
+        int? month,
+        int? year,
+      }) async {
+    try {
+      final token = _dio.options.headers['Authorization'];
+      if (token == null || token.isEmpty) {
+        return ApiResponse<AttendanceResponse>(
+          success: false,
+          data: null,
+          message: 'Authentication token missing',
+        );
+      }
+
+      final queryParameters = <String, dynamic>{};
+      if (month != null) queryParameters['month'] = month;
+      if (year != null) queryParameters['year'] = year;
+
+      final response = await _dio.get(
+        '${AppConstants.attendanceEndpoint}/$studentId',
+        queryParameters: queryParameters.isNotEmpty ? queryParameters : null,
+        options: Options(
+          headers: {
+            'Authorization': _dio.options.headers['Authorization'],
+          },
+        ),
+      );
+
+      return _processResponse<AttendanceResponse>(
+        response,
+            (data) => AttendanceResponse.fromJson(data),
+      );
+    } catch (e) {
+      return _handleError<AttendanceResponse>(e);
     }
   }
 

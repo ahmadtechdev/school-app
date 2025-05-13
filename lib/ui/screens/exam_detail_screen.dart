@@ -14,16 +14,18 @@ import '../controllers/exam_details_controller.dart';
 class ExamDetailsScreen extends StatefulWidget {
   final String examId;
   final String examName;
+  final String studentId;
   final String studentName;
   final String studentImage;
 
   const ExamDetailsScreen({
-    Key? key,
+    super.key,
     required this.examId,
     required this.examName,
     required this.studentName,
+    required this.studentId,
     required this.studentImage,
-  }) : super(key: key);
+  });
 
   @override
   State<ExamDetailsScreen> createState() => _ExamDetailsScreenState();
@@ -38,7 +40,7 @@ class _ExamDetailsScreenState extends State<ExamDetailsScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _examDetailsController = Get.put(ExamDetailsController(examId: int.parse(widget.examId)));
+    _examDetailsController = Get.put(ExamDetailsController(examId: int.parse(widget.examId), studentId: int.parse(widget.studentId)));
 
     _animationController = AnimationController(
       vsync: this,
