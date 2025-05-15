@@ -5,7 +5,7 @@ import '../../core/services/api_service.dart';
 import '../models/study_material_model.dart';
 
 class StudyMaterialRepository {
-  final ApiService _apiService = Get.find<ApiService>();
+  final ApiService _apiService = Get.put(ApiService());
 
   Future<StudyMaterialResponse> getStudyMaterials(int studentId) async {
     try {

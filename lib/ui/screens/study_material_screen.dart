@@ -7,6 +7,8 @@ import 'package:lottie/lottie.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/colors.dart';
+import '../../data/models/study_material_model.dart';
+import '../controllers/study_material_controller.dart';
 
 class StudyMaterialScreen extends StatefulWidget {
   final String studentId;
@@ -30,11 +32,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  bool _isLoading = true;
-  String _errorMessage = '';
-
-  // Mock study materials list for UI demonstration
-  final List<Map<String, dynamic>> _studyMaterials = [];
+  final StudyMaterialController _controller = Get.put(StudyMaterialController());
 
   @override
   void initState() {
@@ -79,99 +77,8 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
     super.dispose();
   }
 
-  // Placeholder method to load study materials
-  // In production, this would make an API call
   Future<void> _loadStudyMaterials() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
-    try {
-      // Simulate API delay
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Mock data for study materials
-      final List<Map<String, dynamic>> materials = [
-        {
-          'id': '1',
-          'title': 'Mathematics Chapter 5 Notes',
-          'subject': 'Mathematics',
-          'description': 'Detailed notes on Calculus fundamentals and applications',
-          'uploadDate': DateTime(2025, 2, 24),
-          'fileType': 'PDF',
-          'fileSize': '2.3 MB',
-          'fileUrl': 'https://example.com/math_notes.pdf',
-          'color': Colors.purple,
-        },
-        {
-          'id': '2',
-          'title': 'Science Lab Experiment Guide',
-          'subject': 'Science',
-          'description': 'Step-by-step instructions for upcoming laboratory experiments',
-          'uploadDate': DateTime(2025, 2, 24),
-          'fileType': 'PDF',
-          'fileSize': '3.7 MB',
-          'fileUrl': 'https://example.com/science_lab.pdf',
-          'color': Colors.blue,
-        },
-        {
-          'id': '3',
-          'title': 'History Timeline Summary',
-          'subject': 'History',
-          'description': 'Comprehensive timeline of major historical events for exam preparation',
-          'uploadDate': DateTime(2025, 3, 13),
-          'fileType': 'PDF',
-          'fileSize': '1.8 MB',
-          'fileUrl': 'https://example.com/history_timeline.pdf',
-          'color': Colors.redAccent,
-        },
-        {
-          'id': '4',
-          'title': 'English Literature Analysis',
-          'subject': 'English',
-          'description': 'Analysis of Shakespeare\'s Hamlet with critical commentary',
-          'uploadDate': DateTime(2025, 4, 5),
-          'fileType': 'DOCX',
-          'fileSize': '1.5 MB',
-          'fileUrl': 'https://example.com/english_lit.docx',
-          'color': Colors.teal,
-        },
-        {
-          'id': '5',
-          'title': 'Geography Maps Collection',
-          'subject': 'Geography',
-          'description': 'Collection of important maps and geographical data for reference',
-          'uploadDate': DateTime(2025, 4, 12),
-          'fileType': 'ZIP',
-          'fileSize': '8.2 MB',
-          'fileUrl': 'https://example.com/geography_maps.zip',
-          'color': Colors.amber,
-        },
-        {
-          'id': '6',
-          'title': 'Computer Science Programming Examples',
-          'subject': 'Computer Science',
-          'description': 'Example code snippets and programming patterns',
-          'uploadDate': DateTime(2025, 4, 18),
-          'fileType': 'ZIP',
-          'fileSize': '4.6 MB',
-          'fileUrl': 'https://example.com/cs_examples.zip',
-          'color': Colors.indigo,
-        },
-      ];
-
-      setState(() {
-        _studyMaterials.clear();
-        _studyMaterials.addAll(materials);
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to load study materials. Please try again.';
-      });
-    }
+    await _controller.loadStudyMaterials(int.parse(widget.studentId));
   }
 
   @override
@@ -183,18 +90,23 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
           children: [
             _buildHeader(),
             Expanded(
-              child: _isLoading
-                  ? _buildLoadingView()
-                  : _errorMessage.isNotEmpty
-                  ? _buildErrorView()
-                  : _buildStudyMaterialsContent(),
+              child: Obx(() {
+                if (_controller.isLoading.value) {
+                  return _buildLoadingView();
+                } else if (_controller.errorMessage.value.isNotEmpty) {
+                  return _buildErrorView(_controller.errorMessage.value);
+                } else if (_controller.studyMaterials.isEmpty) {
+                  return _buildEmptyView();
+                } else {
+                  return _buildStudyMaterialsContent();
+                }
+              }),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Filter/Search functionality to be implemented
           Get.snackbar(
             'Coming Soon',
             'Search and filtering functionality will be available soon!',
@@ -348,7 +260,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Lottie.asset(
-            'assets/animations/loading_books.json', // You'll need to add this animation asset
+            'assets/animations/login_animation.json',
             width: 200,
             height: 200,
             fit: BoxFit.contain,
@@ -366,7 +278,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
     );
   }
 
-  Widget _buildErrorView() {
+  Widget _buildErrorView(String errorMessage) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -378,7 +290,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
           ),
           const SizedBox(height: 16),
           Text(
-            _errorMessage,
+            errorMessage,
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 16,
@@ -412,14 +324,12 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
         child: RefreshIndicator(
           onRefresh: _loadStudyMaterials,
           color: AppColors.primary,
-          child: _studyMaterials.isEmpty
-              ? _buildEmptyView()
-              : AnimationLimiter(
+          child: AnimationLimiter(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              itemCount: _studyMaterials.length,
+              itemCount: _controller.studyMaterials.length,
               itemBuilder: (context, index) {
-                final material = _studyMaterials[index];
+                final material = _controller.studyMaterials[index];
                 return AnimationConfiguration.staggeredList(
                   position: index,
                   duration: const Duration(milliseconds: 500),
@@ -444,7 +354,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Lottie.asset(
-            'assets/animations/empty_box.json', // You'll need to add this animation asset
+            'assets/animations/empty_box.json',
             width: 200,
             height: 200,
           ),
@@ -484,11 +394,11 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
     );
   }
 
-  Widget _buildMaterialCard(Map<String, dynamic> material) {
-    final Color cardColor = material['color'] ?? AppColors.primary;
-    final DateTime uploadDate = material['uploadDate'] as DateTime;
-    final String formattedDate = DateFormat('dd-MM-yyyy').format(uploadDate);
-    final bool isRecent = DateTime.now().difference(uploadDate).inDays < 7;
+  Widget _buildMaterialCard(StudyMaterial material) {
+    // Assign colors based on file type for visual distinction
+    final Color cardColor = _getColorForFileType(material.fileType);
+    final bool isRecent = DateTime.now().difference(material.createdAt).inDays < 7;
+    final String formattedDate = DateFormat('dd-MM-yyyy').format(material.createdAt);
 
     return GestureDetector(
       onTap: () => _showMaterialDetails(material),
@@ -534,52 +444,32 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
                             color: cardColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: _getFileTypeIcon(material['fileType'], cardColor),
+                          child: _getFileTypeIcon(material.fileType, cardColor),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: cardColor.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      material['subject'],
-                                      style: TextStyle(
-                                        color: cardColor,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              if (isRecent)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  margin: const EdgeInsets.only(bottom: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'NEW',
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  if (isRecent)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Text(
-                                        'NEW',
-                                        style: TextStyle(
-                                          color: Colors.green,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
+                                ),
                               Text(
-                                material['title'],
+                                material.title,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -590,21 +480,6 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        material['description'],
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 14,
-                        ),
-                      ),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -636,7 +511,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '${material['fileType']} • ${material['fileSize']}',
+                              material.fileType,
                               style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 12,
@@ -691,6 +566,29 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
     );
   }
 
+  Color _getColorForFileType(String fileType) {
+    switch (fileType.toUpperCase()) {
+      case 'PDF':
+        return Colors.purple;
+      case 'DOCX':
+        return Colors.blue;
+      case 'XLSX':
+        return Colors.green;
+      case 'PPTX':
+        return Colors.orange;
+      case 'ZIP':
+        return Colors.amber;
+      case 'IMAGE':
+        return Colors.indigo;
+      case 'VIDEO':
+        return Colors.red;
+      case 'AUDIO':
+        return Colors.teal;
+      default:
+        return AppColors.primary;
+    }
+  }
+
   Widget _getFileTypeIcon(String fileType, Color color) {
     IconData iconData;
 
@@ -710,10 +608,13 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
       case 'ZIP':
         iconData = Icons.folder_zip;
         break;
-      case 'MP4':
+      case 'IMAGE':
+        iconData = Icons.image;
+        break;
+      case 'VIDEO':
         iconData = Icons.video_file;
         break;
-      case 'MP3':
+      case 'AUDIO':
         iconData = Icons.audio_file;
         break;
       default:
@@ -727,7 +628,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
     );
   }
 
-  void _showMaterialDetails(Map<String, dynamic> material) {
+  void _showMaterialDetails(StudyMaterial material) {
+    final Color cardColor = _getColorForFileType(material.fileType);
+    final String formattedDate = DateFormat('dd MMMM, yyyy').format(material.createdAt);
+
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
@@ -747,10 +651,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: material['color'].withOpacity(0.1),
+                    color: cardColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: _getFileTypeIcon(material['fileType'], material['color']),
+                  child: _getFileTypeIcon(material.fileType, cardColor),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -758,7 +662,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        material['title'],
+                        material.title,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
@@ -767,9 +671,9 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        material['subject'],
+                        material.fileType,
                         style: TextStyle(
-                          color: material['color'],
+                          color: cardColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -780,23 +684,6 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
               ],
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Description',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              material['description'],
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 16),
             Row(
               children: [
                 const Icon(
@@ -806,7 +693,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Uploaded: ${DateFormat('dd MMMM, yyyy').format(material['uploadDate'])}',
+                  'Uploaded: $formattedDate',
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
@@ -824,7 +711,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${material['fileType']} • ${material['fileSize']}',
+                  material.fileType,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
@@ -882,10 +769,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
     );
   }
 
-  void _downloadFile(Map<String, dynamic> material) {
+  void _downloadFile(StudyMaterial material) {
     Get.snackbar(
       'Downloading',
-      'Downloading ${material['title']}...',
+      'Downloading ${material.title}...',
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.green.withOpacity(0.9),
       colorText: Colors.white,
@@ -901,10 +788,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with TickerPr
     // In real implementation, you would start the download process here
   }
 
-  void _previewFile(Map<String, dynamic> material) {
+  void _previewFile(StudyMaterial material) {
     Get.snackbar(
       'Preview',
-      'Opening preview for ${material['title']}...',
+      'Opening preview for ${material.title}...',
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: AppColors.info.withOpacity(0.9),
       colorText: Colors.white,
